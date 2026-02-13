@@ -8,7 +8,7 @@ import io
 st.set_page_config(
     page_title="Jellyfish Classifier 🪼",
     page_icon="🪼",
-    layout="centered"
+    layout="wide"
 )
 
 # ── Custom CSS ───────────────────────────────────────────────
@@ -224,6 +224,7 @@ def preprocess_image(image: Image.Image):
     return np.expand_dims(arr, axis=0)
 
 # ── UI ───────────────────────────────────────────────────────
+# Compact header
 st.markdown('<div class="hero-title">Jellyfish Classifier</div>', unsafe_allow_html=True)
 st.markdown('<div class="hero-sub">Deep Learning · MobileNetV2 · 6 Species</div>', unsafe_allow_html=True)
 
@@ -231,28 +232,34 @@ model = load_model()
 
 # Class names — must match your training order!
 CLASS_NAMES = [
-    "Moon_jellyfish",           # capital M — matches train_ds.class_names
+    "Moon_jellyfish",
     "barrel_jellyfish",
     "blue_jellyfish",
     "compass_jellyfish",
     "lions_mane_jellyfish",
-    "mauve_stinger_jellyfish",  # includes _jellyfish suffix
+    "mauve_stinger_jellyfish",
 ]
 
+# ── Upload bar at top (compact) ──
 uploaded_file = st.file_uploader(
     "Upload a jellyfish image",
     type=["jpg", "jpeg", "png", "webp"],
-    help="Supported: JPG, JPEG, PNG, WEBP"
+    help="Supported: JPG, JPEG, PNG, WEBP",
+    label_visibility="collapsed"
 )
 
 if uploaded_file:
     image = Image.open(uploaded_file)
 
-    col1, col2 = st.columns([1, 1], gap="large")
+    # 3 columns: image | prediction | species info
+    col1, col2, col3 = st.columns([1.2, 1.2, 1.6], gap="medium")
 
+    # ── Col 1: Image ──
     with col1:
-        st.image(image, caption="Uploaded image", use_container_width=True)
+        st.markdown('<div class="info-label">📷 Uploaded Image</div>', unsafe_allow_html=True)
+        st.image(image, use_container_width=True)
 
+    # ── Col 2: Prediction ──
     with col2:
         if model is not None:
             with st.spinner("Analyzing..."):
@@ -263,7 +270,8 @@ if uploaded_file:
                 confidence = float(preds[top_idx])
                 info = JELLYFISH_INFO.get(top_class, {})
 
-            # Result card
+            st.markdown('<div class="info-label">🔍 Prediction</div>', unsafe_allow_html=True)
+
             st.markdown(f"""
             <div class="result-card">
                 <div class="species-badge">{info.get('emoji','🪼')} Identified</div>
@@ -273,65 +281,50 @@ if uploaded_file:
             """, unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
-            st.progress(confidence)
 
-            # Top 3 predictions
-            st.markdown("**Top predictions:**")
+            # Top 3
+            st.markdown('<div class="info-label">Top Predictions</div>', unsafe_allow_html=True)
             top3_idx = np.argsort(preds)[::-1][:3]
             for i in top3_idx:
                 name = CLASS_NAMES[i].replace('_', ' ').title()
-                prob = preds[i]
-                bar_col, label_col = st.columns([3, 1])
-                with bar_col:
-                    st.progress(float(prob), text=name)
-                with label_col:
-                    st.markdown(f"<p style='color:#7fffd4;font-size:0.85rem;margin-top:6px'>{prob*100:.1f}%</p>", unsafe_allow_html=True)
+                prob = float(preds[i])
+                st.progress(prob, text=f"{name}  {prob*100:.1f}%")
 
-            # Species info RIGHT beside image in same col2
-            if info:
-                st.markdown('<hr class="ocean-divider">', unsafe_allow_html=True)
-                st.markdown("**🔬 Species Info**")
+    # ── Col 3: Species Info ──
+    with col3:
+        if model is not None and info:
+            st.markdown('<div class="info-label">🔬 Species Info</div>', unsafe_allow_html=True)
 
-                st.markdown(f"""
+            st.markdown(f"""
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-top:0.4rem">
                 <div class="info-card">
                     <div class="info-label">Scientific Name</div>
                     <p><i>{info['scientific']}</i></p>
                 </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown(f"""
                 <div class="info-card">
                     <div class="info-label">Habitat</div>
                     <p>{info['habitat']}</p>
                 </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown(f"""
                 <div class="info-card">
                     <div class="info-label">Size</div>
                     <p>{info['size']}</p>
                 </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown(f"""
                 <div class="info-card">
                     <div class="info-label">Sting Danger</div>
                     <p>{info['danger']}</p>
                 </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown(f"""
-                <div class="info-card" style="margin-top:0.5rem">
-                    <div class="info-label">🌊 Did You Know?</div>
-                    <p>{info['fun_fact']}</p>
-                </div>
-                """, unsafe_allow_html=True)
+            </div>
+            <div class="info-card" style="margin-top:0.6rem">
+                <div class="info-label">🌊 Did You Know?</div>
+                <p>{info['fun_fact']}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
 else:
     st.markdown("""
     <div class="upload-box">
         <p style="color:#2a6fa8;font-size:2rem;margin:0">🪼</p>
-        <p style="color:#7ecfea;margin:0.5rem 0 0">Drop a jellyfish image above to identify it</p>
+        <p style="color:#7ecfea;margin:0.5rem 0 0">Upload a jellyfish image above to identify it</p>
         <p style="color:#2a6fa8;font-size:0.8rem;margin-top:0.3rem">Supports: barrel · blue · compass · lion's mane · mauve stinger · moon</p>
     </div>
     """, unsafe_allow_html=True)
