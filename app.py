@@ -322,9 +322,18 @@ if uploaded_file:
 
 else:
     st.markdown("""
-    <p style="color:#2a6fa8; font-size:0.9rem; text-align:center; margin-top:0.5rem;">
-        🪼 Upload an image above · Supports: barrel · blue · compass · lion's mane · mauve stinger · moon
-    </p>
+    <div style="text-align:center; padding: 2rem 0;">
+        <p style="font-size:3.5rem; margin:0;">🪼</p>
+        <p style="font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:700;
+                  background: linear-gradient(135deg, #7fffd4, #00bfff);
+                  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                  margin: 0.5rem 0 0.3rem;">
+            Drop a jellyfish image to identify it
+        </p>
+        <p style="color:#2a6fa8; font-size:0.82rem; letter-spacing:2px; text-transform:uppercase; margin:0;">
+            barrel · blue · compass · lion's mane · mauve stinger · moon
+        </p>
+    </div>
     """, unsafe_allow_html=True)
 
 st.markdown('<div class="footer">Built with TensorFlow · MobileNetV2 · Streamlit 🪼</div>', unsafe_allow_html=True)
