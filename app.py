@@ -248,6 +248,13 @@ uploaded_file = st.file_uploader(
     label_visibility="collapsed"
 )
 
+st.markdown("""
+<p style="color:#e67e22; font-size:0.82rem; text-align:center; letter-spacing:1px; margin-top:-0.5rem;">
+    ⚠️ This model is trained to classify only these 6 species:
+    Barrel · Blue · Compass · Lion's Mane · Mauve Stinger · Moon Jellyfish
+</p>
+""", unsafe_allow_html=True)
+
 if uploaded_file:
     image = Image.open(uploaded_file)
 
