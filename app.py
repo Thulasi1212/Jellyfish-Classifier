@@ -479,13 +479,12 @@ elif page == "📊 Model Performance":
         """, unsafe_allow_html=True)
 
         for m in METRICS:
-            def bar(val):
+            def make_bar(val):
                 color = "#7fffd4" if val >= 0.90 else "#00bfff" if val >= 0.80 else "#e67e22"
-                return f"""
-                <div style="text-align:center">
+                return f"""<div style="text-align:center">
                     <div style="height:3px; border-radius:99px; margin-bottom:3px;
-                        background:linear-gradient(90deg, {color} {val*100}%,
-                        rgba(255,255,255,0.05) {val*100}%)"></div>
+                        background:linear-gradient(90deg, {color} {val*100:.0f}%,
+                        rgba(255,255,255,0.05) {val*100:.0f}%)"></div>
                     <span style="color:{color}; font-size:0.82rem; font-weight:600">{val*100:.0f}%</span>
                 </div>"""
 
@@ -494,9 +493,9 @@ elif page == "📊 Model Performance":
                  grid-template-columns:1.4fr 0.8fr 0.8fr 0.8fr 0.7fr;
                  gap:0.3rem; align-items:center; padding:0.7rem 0.8rem; margin-top:0.4rem;">
                 <span style="font-size:0.85rem">{m['emoji']} {m['name']}</span>
-                {bar(m['precision'])}
-                {bar(m['recall'])}
-                {bar(m['f1'])}
+                {make_bar(m['precision'])}
+                {make_bar(m['recall'])}
+                {make_bar(m['f1'])}
                 <span style="text-align:center; color:#7ecfea; font-size:0.82rem">{m['support']}</span>
             </div>
             """, unsafe_allow_html=True)
