@@ -11,7 +11,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# ── Custom CSS ───────────────────────────────────────────────
+# ── Custom CSS ─
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap');
@@ -328,12 +328,7 @@ if uploaded_file:
         """, unsafe_allow_html=True)
 
 else:
-    st.markdown("""
-    <div class="upload-box">
-        <p style="color:#2a6fa8;font-size:2rem;margin:0">🪼</p>
-        <p style="color:#7ecfea;margin:0.5rem 0 0">Drop a jellyfish image above to identify it</p>
-        <p style="color:#2a6fa8;font-size:0.8rem;margin-top:0.3rem">Supports: barrel · blue · compass · lion's mane · mauve stinger · moon</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.info("👆 Upload a jellyfish image above to get started!")
+
 
 st.markdown('<div class="footer">Built with TensorFlow · MobileNetV2 · Streamlit 🪼</div>', unsafe_allow_html=True)
