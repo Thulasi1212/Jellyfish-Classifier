@@ -11,7 +11,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# ── Custom CSS ─
+# ── Custom CSS ───────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap');
@@ -287,48 +287,53 @@ if uploaded_file:
                 with label_col:
                     st.markdown(f"<p style='color:#7fffd4;font-size:0.85rem;margin-top:6px'>{prob*100:.1f}%</p>", unsafe_allow_html=True)
 
-    # Species info
-    st.markdown('<hr class="ocean-divider">', unsafe_allow_html=True)
+            # Species info RIGHT beside image in same col2
+            if info:
+                st.markdown('<hr class="ocean-divider">', unsafe_allow_html=True)
+                st.markdown("**🔬 Species Info**")
 
-    if info:
-        st.markdown("### 🔬 Species Info")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.markdown(f"""
-            <div class="info-card">
-                <div class="info-label">Scientific Name</div>
-                <p><i>{info['scientific']}</i></p>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="info-card">
-                <div class="info-label">Habitat</div>
-                <p>{info['habitat']}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        with col_b:
-            st.markdown(f"""
-            <div class="info-card">
-                <div class="info-label">Size</div>
-                <p>{info['size']}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="info-card">
-                <div class="info-label">Sting Danger</div>
-                <p>{info['danger']}</p>
-            </div>
-            """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="info-card">
+                    <div class="info-label">Scientific Name</div>
+                    <p><i>{info['scientific']}</i></p>
+                </div>
+                """, unsafe_allow_html=True)
 
-        st.markdown(f"""
-        <div class="info-card" style="margin-top:1rem">
-            <div class="info-label">🌊 Did You Know?</div>
-            <p>{info['fun_fact']}</p>
-        </div>
-        """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="info-card">
+                    <div class="info-label">Habitat</div>
+                    <p>{info['habitat']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown(f"""
+                <div class="info-card">
+                    <div class="info-label">Size</div>
+                    <p>{info['size']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown(f"""
+                <div class="info-card">
+                    <div class="info-label">Sting Danger</div>
+                    <p>{info['danger']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown(f"""
+                <div class="info-card" style="margin-top:0.5rem">
+                    <div class="info-label">🌊 Did You Know?</div>
+                    <p>{info['fun_fact']}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
 else:
-    st.info("👆 Upload a jellyfish image above to get started!")
-
+    st.markdown("""
+    <div class="upload-box">
+        <p style="color:#2a6fa8;font-size:2rem;margin:0">🪼</p>
+        <p style="color:#7ecfea;margin:0.5rem 0 0">Drop a jellyfish image above to identify it</p>
+        <p style="color:#2a6fa8;font-size:0.8rem;margin-top:0.3rem">Supports: barrel · blue · compass · lion's mane · mauve stinger · moon</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown('<div class="footer">Built with TensorFlow · MobileNetV2 · Streamlit 🪼</div>', unsafe_allow_html=True)
