@@ -4,14 +4,14 @@ import numpy as np
 from PIL import Image
 import io
 
-# Page config
+# ── Page config ──────────────────────────────────────────────
 st.set_page_config(
     page_title="Jellyfish Classifier 🪼",
     page_icon="🪼",
     layout="centered"
 )
 
-# Custom CSS
+# ── Custom CSS ───────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap');
@@ -154,7 +154,7 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-# Jellyfish info database
+# ── Jellyfish info database ──────────────────────────────────
 JELLYFISH_INFO = {
     "Moon_jellyfish": {
         "emoji": "🌙",
@@ -206,8 +206,7 @@ JELLYFISH_INFO = {
     }
 }
 
-# Model loading
-
+# ── Model loading ────────────────────────────────────────────
 @st.cache_resource
 def load_model():
     try:
@@ -217,14 +216,14 @@ def load_model():
         st.error(f"⚠️ Model file not found. Please upload `best_jellyfish_model.keras` to your repo. Error: {e}")
         return None
 
-# Preprocessing
+# ── Preprocessing ────────────────────────────────────────────
 def preprocess_image(image: Image.Image):
     img = image.convert("RGB")
     img = img.resize((224, 224))
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)
 
-# UI
+# ── UI ───────────────────────────────────────────────────────
 st.markdown('<div class="hero-title">Jellyfish Classifier</div>', unsafe_allow_html=True)
 st.markdown('<div class="hero-sub">Deep Learning · MobileNetV2 · 6 Species</div>', unsafe_allow_html=True)
 
@@ -242,8 +241,8 @@ CLASS_NAMES = [
 
 uploaded_file = st.file_uploader(
     "Upload a jellyfish image",
-    type=["jpg", "jpeg", "png"],
-    help="Supported: JPG, JPEG, PNG"
+    type=["jpg", "jpeg", "png", "webp"],
+    help="Supported: JPG, JPEG, PNG, WEBP"
 )
 
 if uploaded_file:
