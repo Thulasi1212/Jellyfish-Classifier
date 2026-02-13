@@ -3,6 +3,8 @@ import tensorflow as tf
 import numpy as np
 from PIL import Image
 import io
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # ── Page config ──────────────────────────────────────────────
 st.set_page_config(
@@ -223,8 +225,28 @@ def preprocess_image(image: Image.Image):
     arr = np.array(img, dtype=np.float32) / 255.0
     return np.expand_dims(arr, axis=0)
 
-# ── UI ───────────────────────────────────────────────────────
-# Compact header
+# ── Sidebar Navigation ───────────────────────────────────────
+st.sidebar.markdown("""
+<div style="text-align:center; padding: 1rem 0;">
+    <p style="font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:800;
+      background: linear-gradient(135deg, #7fffd4, #00bfff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+      🪼 Jellyfish Classifier
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+page = st.sidebar.radio(
+    "Navigate",
+    ["🔍 Classifier", "📊 Model Performance"],
+    label_visibility="collapsed"
+)
+
+st.sidebar.markdown("""
+<div style="margin-top:2rem; color:#2a6fa8; font-size:0.75rem; text-align:center; letter-spacing:1px;">
+    Built with TensorFlow · MobileNetV2 · Streamlit
+</div>
+""", unsafe_allow_html=True)
 st.markdown('<div class="hero-title">Jellyfish Classifier</div>', unsafe_allow_html=True)
 st.markdown('<div class="hero-sub">Deep Learning · MobileNetV2 · 6 Species</div>', unsafe_allow_html=True)
 
@@ -240,121 +262,257 @@ CLASS_NAMES = [
     "mauve_stinger_jellyfish",
 ]
 
-# ── Upload bar at top (compact) ──
-uploaded_files = st.file_uploader(
-    "Upload jellyfish images",
-    type=["jpg", "jpeg", "png", "webp"],
-    help="Supported: JPG, JPEG, PNG, WEBP",
-    label_visibility="collapsed",
-    accept_multiple_files=True
-)
+# ═══════════════════════════════════════════════
+# PAGE 1 — CLASSIFIER
+# ═══════════════════════════════════════════════
+if page == "🔍 Classifier":
 
-st.markdown("""
-<div style="text-align:center; margin-top:-0.5rem; margin-bottom:0.3rem;">
-    <p style="color:#7fffd4; font-size:0.82rem; letter-spacing:1px;">
-        💡 <b>Tip:</b> Hold <kbd style="background:#0a2a4a; border:1px solid #2a6fa8; border-radius:4px; padding:1px 6px; font-size:0.78rem;">Ctrl</kbd> (Windows) or <kbd style="background:#0a2a4a; border:1px solid #2a6fa8; border-radius:4px; padding:1px 6px; font-size:0.78rem;">⌘ Cmd</kbd> (Mac) to select multiple images at once!
-    </p>
-    <p style="color:#e67e22; font-size:0.82rem; letter-spacing:1px; margin-top:-0.3rem;">
-        ⚠️ Only classifies these 6 species: Barrel · Blue · Compass · Lion's Mane · Mauve Stinger · Moon Jellyfish
-    </p>
-</div>
-""", unsafe_allow_html=True)
+    # ── Upload bar at top (compact) ──
+    uploaded_files = st.file_uploader(
+        "Upload jellyfish images",
+        type=["jpg", "jpeg", "png", "webp"],
+        help="Supported: JPG, JPEG, PNG, WEBP",
+        label_visibility="collapsed",
+        accept_multiple_files=True
+    )
 
-if uploaded_files:
-    for uploaded_file in uploaded_files:
-        image = Image.open(uploaded_file)
-
-        st.markdown(f"""
-        <div style="margin-top:1.5rem; margin-bottom:0.3rem;">
-            <span class="species-badge">📁 {uploaded_file.name}</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # 3 columns: image | prediction | species info
-        col1, col2, col3 = st.columns([1.2, 1.2, 1.6], gap="medium")
-
-        # ── Col 1: Image ──
-        with col1:
-            st.markdown('<div class="info-label">📷 Uploaded Image</div>', unsafe_allow_html=True)
-            st.image(image, use_container_width=True)
-
-        # ── Col 2: Prediction ──
-        with col2:
-            if model is not None:
-                with st.spinner(f"Analyzing {uploaded_file.name}..."):
-                    input_arr = preprocess_image(image)
-                    preds = model.predict(input_arr, verbose=0)[0]
-                    top_idx = int(np.argmax(preds))
-                    top_class = CLASS_NAMES[top_idx]
-                    confidence = float(preds[top_idx])
-                    info = JELLYFISH_INFO.get(top_class, {})
-
-                st.markdown('<div class="info-label">🔍 Prediction</div>', unsafe_allow_html=True)
-
-                st.markdown(f"""
-                <div class="result-card">
-                    <div class="species-badge">{info.get('emoji','🪼')} Identified</div>
-                    <div class="result-name">{top_class.replace('_', ' ').title()}</div>
-                    <div class="result-confidence">Confidence: {confidence*100:.1f}%</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                st.markdown("<br>", unsafe_allow_html=True)
-
-                # Top 3
-                st.markdown('<div class="info-label">Top Predictions</div>', unsafe_allow_html=True)
-                top3_idx = np.argsort(preds)[::-1][:3]
-                for i in top3_idx:
-                    name = CLASS_NAMES[i].replace('_', ' ').title()
-                    prob = float(preds[i])
-                    st.progress(prob, text=f"{name}  {prob*100:.1f}%")
-
-        # ── Col 3: Species Info ──
-        with col3:
-            if model is not None and info:
-                st.markdown('<div class="info-label">🔬 Species Info</div>', unsafe_allow_html=True)
-
-                st.markdown(f"""
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-top:0.4rem">
-                    <div class="info-card">
-                        <div class="info-label">Scientific Name</div>
-                        <p><i>{info['scientific']}</i></p>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Habitat</div>
-                        <p>{info['habitat']}</p>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Size</div>
-                        <p>{info['size']}</p>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Sting Danger</div>
-                        <p>{info['danger']}</p>
-                    </div>
-                </div>
-                <div class="info-card" style="margin-top:0.6rem">
-                    <div class="info-label">🌊 Did You Know?</div>
-                    <p>{info['fun_fact']}</p>
-                </div>
-                """, unsafe_allow_html=True)
-
-        st.markdown('<hr class="ocean-divider">', unsafe_allow_html=True)
-
-else:
     st.markdown("""
-    <div style="text-align:center; padding: 2rem 0;">
-        <p style="font-size:3.5rem; margin:0;">🪼</p>
-        <p style="font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:700;
-                  background: linear-gradient(135deg, #7fffd4, #00bfff);
-                  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                  margin: 0.5rem 0 0.3rem;">
-            Upload one or more jellyfish images to identify them
+    <div style="text-align:center; margin-top:-0.5rem; margin-bottom:0.3rem;">
+        <p style="color:#7fffd4; font-size:0.82rem; letter-spacing:1px;">
+            💡 <b>Tip:</b> Hold <kbd style="background:#0a2a4a; border:1px solid #2a6fa8; border-radius:4px; padding:1px 6px; font-size:0.78rem;">Ctrl</kbd> (Windows) or <kbd style="background:#0a2a4a; border:1px solid #2a6fa8; border-radius:4px; padding:1px 6px; font-size:0.78rem;">⌘ Cmd</kbd> (Mac) to select multiple images at once!
         </p>
-        <p style="color:#2a6fa8; font-size:0.82rem; letter-spacing:2px; text-transform:uppercase; margin:0;">
-            barrel · blue · compass · lion's mane · mauve stinger · moon
+        <p style="color:#e67e22; font-size:0.82rem; letter-spacing:1px; margin-top:-0.3rem;">
+            ⚠️ Only classifies these 6 species: Barrel · Blue · Compass · Lion's Mane · Mauve Stinger · Moon Jellyfish
         </p>
     </div>
     """, unsafe_allow_html=True)
+
+    if uploaded_files:
+        for uploaded_file in uploaded_files:
+            image = Image.open(uploaded_file)
+
+            st.markdown(f"""
+            <div style="margin-top:1.5rem; margin-bottom:0.3rem;">
+                <span class="species-badge">📁 {uploaded_file.name}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            col1, col2, col3 = st.columns([1.2, 1.2, 1.6], gap="medium")
+
+            with col1:
+                st.markdown('<div class="info-label">📷 Uploaded Image</div>', unsafe_allow_html=True)
+                st.image(image, use_container_width=True)
+
+            with col2:
+                if model is not None:
+                    with st.spinner(f"Analyzing {uploaded_file.name}..."):
+                        input_arr = preprocess_image(image)
+                        preds = model.predict(input_arr, verbose=0)[0]
+                        top_idx = int(np.argmax(preds))
+                        top_class = CLASS_NAMES[top_idx]
+                        confidence = float(preds[top_idx])
+                        info = JELLYFISH_INFO.get(top_class, {})
+
+                    st.markdown('<div class="info-label">🔍 Prediction</div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="result-card">
+                        <div class="species-badge">{info.get('emoji','🪼')} Identified</div>
+                        <div class="result-name">{top_class.replace('_', ' ').title()}</div>
+                        <div class="result-confidence">Confidence: {confidence*100:.1f}%</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.markdown('<div class="info-label">Top Predictions</div>', unsafe_allow_html=True)
+                    top3_idx = np.argsort(preds)[::-1][:3]
+                    for i in top3_idx:
+                        name = CLASS_NAMES[i].replace('_', ' ').title()
+                        prob = float(preds[i])
+                        st.progress(prob, text=f"{name}  {prob*100:.1f}%")
+
+            with col3:
+                if model is not None and info:
+                    st.markdown('<div class="info-label">🔬 Species Info</div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-top:0.4rem">
+                        <div class="info-card">
+                            <div class="info-label">Scientific Name</div>
+                            <p><i>{info['scientific']}</i></p>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Habitat</div>
+                            <p>{info['habitat']}</p>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Size</div>
+                            <p>{info['size']}</p>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Sting Danger</div>
+                            <p>{info['danger']}</p>
+                        </div>
+                    </div>
+                    <div class="info-card" style="margin-top:0.6rem">
+                        <div class="info-label">🌊 Did You Know?</div>
+                        <p>{info['fun_fact']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            st.markdown('<hr class="ocean-divider">', unsafe_allow_html=True)
+
+    else:
+        st.markdown("""
+        <div style="text-align:center; padding: 2rem 0;">
+            <p style="font-size:3.5rem; margin:0;">🪼</p>
+            <p style="font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:700;
+                      background: linear-gradient(135deg, #7fffd4, #00bfff);
+                      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                      margin: 0.5rem 0 0.3rem;">
+                Upload one or more jellyfish images to identify them
+            </p>
+            <p style="color:#2a6fa8; font-size:0.82rem; letter-spacing:2px; text-transform:uppercase; margin:0;">
+                barrel · blue · compass · lion's mane · mauve stinger · moon
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════
+# PAGE 2 — MODEL PERFORMANCE
+# ═══════════════════════════════════════════════
+elif page == "📊 Model Performance":
+
+    st.markdown('<div class="hero-title">Model Performance</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-sub">Confusion Matrix · Classification Report · Test Accuracy</div>', unsafe_allow_html=True)
+
+    # ── Real values from your test set ──
+    CM = np.array([
+        [6, 0, 0, 0, 0, 0],
+        [0, 5, 0, 0, 0, 0],
+        [1, 0, 5, 0, 1, 0],
+        [0, 0, 0, 6, 1, 0],
+        [0, 0, 0, 0, 8, 0],
+        [0, 0, 1, 0, 0, 6],
+    ])
+
+    DISPLAY_NAMES = ["Moon", "Barrel", "Blue", "Compass", "Lion's Mane", "Mauve Stinger"]
+    EMOJIS = ["🌙", "🪼", "💙", "🧭", "🦁", "💜"]
+
+    METRICS = [
+        {"name": "Moon Jellyfish",      "emoji": "🌙", "precision": 0.86, "recall": 1.00, "f1": 0.92, "support": 6},
+        {"name": "Barrel Jellyfish",    "emoji": "🪼", "precision": 1.00, "recall": 1.00, "f1": 1.00, "support": 5},
+        {"name": "Blue Jellyfish",      "emoji": "💙", "precision": 0.83, "recall": 0.71, "f1": 0.77, "support": 7},
+        {"name": "Compass Jellyfish",   "emoji": "🧭", "precision": 1.00, "recall": 0.86, "f1": 0.92, "support": 7},
+        {"name": "Lion's Mane",         "emoji": "🦁", "precision": 0.80, "recall": 1.00, "f1": 0.89, "support": 8},
+        {"name": "Mauve Stinger",       "emoji": "💜", "precision": 1.00, "recall": 0.86, "f1": 0.92, "support": 7},
+    ]
+
+    # ── Summary stats ──
+    total = CM.sum()
+    correct = CM.diagonal().sum()
+    acc = correct / total
+
+    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+    for col, label, value in zip(
+        [col_s1, col_s2, col_s3, col_s4],
+        ["Test Accuracy", "Total Images", "Correct", "Classes"],
+        [f"{acc*100:.1f}%", int(total), int(correct), 6]
+    ):
+        with col:
+            st.markdown(f"""
+            <div class="result-card" style="text-align:center; padding:1rem;">
+                <div class="result-name" style="font-size:1.8rem;">{value}</div>
+                <div class="result-confidence">{label}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    col_left, col_right = st.columns([1.1, 1], gap="large")
+
+    # ── Confusion Matrix Plot ──
+    with col_left:
+        st.markdown('<div class="info-label">🔢 Confusion Matrix</div>', unsafe_allow_html=True)
+
+        fig, ax = plt.subplots(figsize=(7, 5))
+        fig.patch.set_facecolor("#041e3a")
+        ax.set_facecolor("#041e3a")
+
+        sns.heatmap(
+            CM, annot=True, fmt="d", ax=ax,
+            cmap=sns.color_palette("Blues", as_cmap=True),
+            linewidths=0.5, linecolor="#062d55",
+            xticklabels=DISPLAY_NAMES,
+            yticklabels=DISPLAY_NAMES,
+            cbar_kws={"shrink": 0.8}
+        )
+
+        ax.set_xlabel("Predicted", color="#7ecfea", fontsize=10, labelpad=10)
+        ax.set_ylabel("Actual", color="#7ecfea", fontsize=10, labelpad=10)
+        ax.tick_params(colors="#7ecfea", labelsize=8)
+        plt.xticks(rotation=30, ha="right")
+        plt.yticks(rotation=0)
+
+        # Color the colorbar
+        cbar = ax.collections[0].colorbar
+        cbar.ax.yaxis.set_tick_params(color="#7ecfea")
+        plt.setp(cbar.ax.yaxis.get_ticklabels(), color="#7ecfea")
+
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close()
+
+    # ── Classification Report ──
+    with col_right:
+        st.markdown('<div class="info-label">📊 Classification Report</div>', unsafe_allow_html=True)
+
+        # Header
+        st.markdown("""
+        <div style="display:grid; grid-template-columns:1.4fr 0.8fr 0.8fr 0.8fr 0.7fr;
+             gap:0.3rem; padding:0.4rem 0.8rem;
+             font-size:0.65rem; color:#2a6fa8; letter-spacing:1px; text-transform:uppercase;">
+            <span>Species</span>
+            <span style="text-align:center">Precision</span>
+            <span style="text-align:center">Recall</span>
+            <span style="text-align:center">F1</span>
+            <span style="text-align:center">Support</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        for m in METRICS:
+            def bar(val):
+                color = "#7fffd4" if val >= 0.90 else "#00bfff" if val >= 0.80 else "#e67e22"
+                return f"""
+                <div style="text-align:center">
+                    <div style="height:3px; border-radius:99px; margin-bottom:3px;
+                        background:linear-gradient(90deg, {color} {val*100}%,
+                        rgba(255,255,255,0.05) {val*100}%)"></div>
+                    <span style="color:{color}; font-size:0.82rem; font-weight:600">{val*100:.0f}%</span>
+                </div>"""
+
+            st.markdown(f"""
+            <div class="info-card" style="display:grid;
+                 grid-template-columns:1.4fr 0.8fr 0.8fr 0.8fr 0.7fr;
+                 gap:0.3rem; align-items:center; padding:0.7rem 0.8rem; margin-top:0.4rem;">
+                <span style="font-size:0.85rem">{m['emoji']} {m['name']}</span>
+                {bar(m['precision'])}
+                {bar(m['recall'])}
+                {bar(m['f1'])}
+                <span style="text-align:center; color:#7ecfea; font-size:0.82rem">{m['support']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Macro avg
+        st.markdown("""
+        <div style="margin-top:0.8rem; padding:0.6rem 0.8rem;
+             background:rgba(0,191,255,0.05); border:1px solid rgba(0,191,255,0.2);
+             border-radius:10px; display:grid;
+             grid-template-columns:1.4fr 0.8fr 0.8fr 0.8fr 0.7fr; gap:0.3rem;">
+            <span style="color:#7ecfea; font-size:0.82rem; font-weight:600">Macro Avg</span>
+            <span style="text-align:center; color:#7fffd4; font-size:0.82rem; font-weight:600">92%</span>
+            <span style="text-align:center; color:#7fffd4; font-size:0.82rem; font-weight:600">90%</span>
+            <span style="text-align:center; color:#7fffd4; font-size:0.82rem; font-weight:600">90%</span>
+            <span style="text-align:center; color:#7ecfea; font-size:0.82rem">40</span>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown('<div class="footer">Built with TensorFlow · MobileNetV2 · Streamlit 🪼</div>', unsafe_allow_html=True)
