@@ -322,11 +322,9 @@ if uploaded_file:
 
 else:
     st.markdown("""
-    <div class="upload-box">
-        <p style="color:#2a6fa8;font-size:2rem;margin:0">🪼</p>
-        <p style="color:#7ecfea;margin:0.5rem 0 0">Upload a jellyfish image above to identify it</p>
-        <p style="color:#2a6fa8;font-size:0.8rem;margin-top:0.3rem">Supports: barrel · blue · compass · lion's mane · mauve stinger · moon</p>
-    </div>
+    <p style="color:#2a6fa8; font-size:0.9rem; text-align:center; margin-top:0.5rem;">
+        🪼 Upload an image above · Supports: barrel · blue · compass · lion's mane · mauve stinger · moon
+    </p>
     """, unsafe_allow_html=True)
 
 st.markdown('<div class="footer">Built with TensorFlow · MobileNetV2 · Streamlit 🪼</div>', unsafe_allow_html=True)
