@@ -306,31 +306,131 @@ if page == "🔍 Classifier":
                     "Filename": uploaded_file.name,
                     "Predicted Species": top_class.replace('_', ' ').title(),
                     "Confidence (%)": f"{confidence*100:.1f}",
-                    "Status": "⚠️ Low Confidence" if confidence < 0.60 else "🔶 Moderate" if confidence < 0.80 else "✅ High Confidence",
+                    "Status": "LOW" if confidence < 0.60 else "MODERATE" if confidence < 0.80 else "HIGH",
                     "Scientific Name": info.get('scientific', ''),
                     "Habitat": info.get('habitat', ''),
                     "Size": info.get('size', ''),
-                    "Sting Danger": info.get('danger', ''),
-                    "Note": "⚠️ Verify — may not be a supported species" if confidence < 0.60 else "Consider using a clearer image" if confidence < 0.80 else "",
+                    "Sting Danger": info.get('danger', '').replace('✅','').replace('⚠️','').replace('🔴','').strip(),
+                    "Note": "Verify - may not be a supported species" if confidence < 0.60 else "Consider using a clearer image" if confidence < 0.80 else "OK",
+                    "_image": image,
+                    "_confidence_raw": confidence,
                 })
 
-        # ── CSV Download button at TOP ──
+        # ── Download buttons at TOP ──
         if results:
-            df = pd.DataFrame(results)
+            df = pd.DataFrame([{k: v for k, v in r.items() if not k.startswith('_')} for r in results])
 
-            # Style low confidence rows in red, moderate in orange
-            def highlight_confidence(row):
-                conf = float(row["Confidence (%)"])
-                if conf < 60:
-                    return ['background-color: #ff4444; color: white'] * len(row)
-                elif conf < 80:
-                    return ['background-color: #ff8c00; color: white'] * len(row)
-                return [''] * len(row)
+            # ── Generate HTML report ──
+            def generate_html_report(results):
+                import base64
 
-            col_dl, _, _ = st.columns([1, 1, 1])
-            with col_dl:
+                def img_to_base64(img):
+                    buf = io.BytesIO()
+                    img.convert("RGB").save(buf, format="JPEG")
+                    return base64.b64encode(buf.getvalue()).decode()
+
+                rows_html = ""
+                for r in results:
+                    conf = r["_confidence_raw"]
+                    if conf < 0.60:
+                        row_bg = "background:#2d0a0a; border-left: 4px solid #e74c3c;"
+                        badge = f'<span style="background:#e74c3c;color:white;padding:3px 10px;border-radius:99px;font-size:0.75rem;">⚠️ Low {conf*100:.1f}%</span>'
+                    elif conf < 0.80:
+                        row_bg = "background:#2d1a00; border-left: 4px solid #e67e22;"
+                        badge = f'<span style="background:#e67e22;color:white;padding:3px 10px;border-radius:99px;font-size:0.75rem;">🔶 Moderate {conf*100:.1f}%</span>'
+                    else:
+                        row_bg = "background:#0a1628; border-left: 4px solid #7fffd4;"
+                        badge = f'<span style="background:#1a6b4a;color:#7fffd4;padding:3px 10px;border-radius:99px;font-size:0.75rem;">✅ High {conf*100:.1f}%</span>'
+
+                    img_b64 = img_to_base64(r["_image"])
+                    note = r.get("Note", "")
+                    note_html = f'<div style="color:#e67e22;font-size:0.75rem;margin-top:0.3rem;">{note}</div>' if note else ""
+
+                    rows_html += f"""
+                    <tr style="{row_bg}">
+                        <td style="padding:12px;"><img src="data:image/jpeg;base64,{img_b64}"
+                            style="width:90px;height:90px;object-fit:cover;border-radius:10px;"/></td>
+                        <td style="padding:12px;color:#a8c8e8;font-size:0.85rem;">{r['Filename']}</td>
+                        <td style="padding:12px;">
+                            <div style="color:#7fffd4;font-weight:700;font-size:0.95rem;">{r['Predicted Species']}</div>
+                            <div style="color:#7ecfea;font-size:0.78rem;font-style:italic;">{r['Scientific Name']}</div>
+                        </td>
+                        <td style="padding:12px;">{badge}{note_html}</td>
+                        <td style="padding:12px;color:#a8c8e8;font-size:0.82rem;">{r['Habitat']}</td>
+                        <td style="padding:12px;color:#a8c8e8;font-size:0.82rem;">{r['Sting Danger']}</td>
+                    </tr>"""
+
+                total = len(results)
+                low = sum(1 for r in results if r["_confidence_raw"] < 0.60)
+                moderate = sum(1 for r in results if 0.60 <= r["_confidence_raw"] < 0.80)
+                high = sum(1 for r in results if r["_confidence_raw"] >= 0.80)
+
+                return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Jellyfish Classification Report</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400&display=swap');
+        body {{ background: linear-gradient(160deg,#020b18,#041e3a,#062d55);
+               min-height:100vh; font-family:'DM Sans',sans-serif; color:white; margin:0; padding:2rem; }}
+        h1 {{ font-family:'Syne',sans-serif; font-size:2rem; font-weight:800;
+              background:linear-gradient(135deg,#7fffd4,#00bfff,#a78bfa);
+              -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:0; }}
+        .sub {{ color:#7ecfea; letter-spacing:3px; text-transform:uppercase; font-size:0.78rem; margin-bottom:2rem; }}
+        .summary {{ display:flex; gap:1rem; margin-bottom:2rem; }}
+        .badge {{ padding:0.6rem 1.2rem; border-radius:12px; font-size:0.85rem; font-weight:600; }}
+        table {{ width:100%; border-collapse:separate; border-spacing:0 6px; }}
+        th {{ background:rgba(0,191,255,0.08); color:#00bfff; font-size:0.7rem;
+              letter-spacing:2px; text-transform:uppercase; padding:10px 12px; text-align:left; }}
+        td {{ vertical-align:middle; }}
+        .footer {{ text-align:center; color:#2a6fa8; font-size:0.75rem; margin-top:2rem; }}
+    </style>
+</head>
+<body>
+    <h1>🪼 Jellyfish Classification Report</h1>
+    <div class="sub">MobileNetV2 · Deep Learning · 6 Species</div>
+    <div class="summary">
+        <div class="badge" style="background:rgba(127,255,212,0.1);color:#7fffd4;border:1px solid #7fffd4;">
+            ✅ High Confidence: {high}
+        </div>
+        <div class="badge" style="background:rgba(230,126,34,0.1);color:#e67e22;border:1px solid #e67e22;">
+            🔶 Moderate: {moderate}
+        </div>
+        <div class="badge" style="background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid #e74c3c;">
+            ⚠️ Low Confidence: {low}
+        </div>
+        <div class="badge" style="background:rgba(0,191,255,0.1);color:#00bfff;border:1px solid #00bfff;">
+            📊 Total: {total}
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Image</th><th>Filename</th><th>Species</th>
+                <th>Confidence</th><th>Habitat</th><th>Sting Danger</th>
+            </tr>
+        </thead>
+        <tbody>{rows_html}</tbody>
+    </table>
+    <div class="footer">Generated by Jellyfish Classifier · MobileNetV2 · Streamlit 🪼</div>
+</body>
+</html>"""
+
+            html_report = generate_html_report(results)
+
+            col_html, col_csv, _ = st.columns([1, 1, 1])
+            with col_html:
                 st.download_button(
-                    label=f"📥 Download Results as CSV ({len(results)} image{'s' if len(results) > 1 else ''})",
+                    label=f"📊 Download HTML Report ({len(results)} image{'s' if len(results) > 1 else ''})",
+                    data=html_report,
+                    file_name="jellyfish_report.html",
+                    mime="text/html",
+                    use_container_width=True
+                )
+            with col_csv:
+                st.download_button(
+                    label=f"📥 Download CSV ({len(results)} image{'s' if len(results) > 1 else ''})",
                     data=df.to_csv(index=False),
                     file_name="jellyfish_results.csv",
                     mime="text/csv",
