@@ -238,7 +238,7 @@ st.sidebar.markdown("""
 
 page = st.sidebar.radio(
     "Navigate",
-    ["🔍 Classifier", "📊 Model Performance"],
+    ["🔍 Classifier", "📊 Model Performance", "🖼️ Species Gallery"],
     label_visibility="collapsed"
 )
 
@@ -513,5 +513,104 @@ elif page == "📊 Model Performance":
             <span style="text-align:center; color:#7ecfea; font-size:0.82rem">40</span>
         </div>
         """, unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════
+# PAGE 3 — SPECIES GALLERY
+# ═══════════════════════════════════════════════
+elif page == "🖼️ Species Gallery":
+
+    st.markdown('<div class="hero-title">Species Gallery</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-sub">6 Jellyfish Species · Training Classes</div>', unsafe_allow_html=True)
+
+    SPECIES = [
+        {
+            "key": "Moon_jellyfish",
+            "name": "Moon Jellyfish",
+            "emoji": "🌙",
+            "scientific": "Aurelia aurita",
+            "danger": "Harmless ✅",
+            "habitat": "Worldwide oceans",
+        },
+        {
+            "key": "barrel_jellyfish",
+            "name": "Barrel Jellyfish",
+            "emoji": "🪼",
+            "scientific": "Rhizostoma pulmo",
+            "danger": "Low ✅",
+            "habitat": "Atlantic, Mediterranean",
+        },
+        {
+            "key": "blue_jellyfish",
+            "name": "Blue Jellyfish",
+            "emoji": "💙",
+            "scientific": "Cyanea lamarckii",
+            "danger": "Mild sting ⚠️",
+            "habitat": "North Atlantic, North Sea",
+        },
+        {
+            "key": "compass_jellyfish",
+            "name": "Compass Jellyfish",
+            "emoji": "🧭",
+            "scientific": "Chrysaora hysoscella",
+            "danger": "Moderate sting ⚠️",
+            "habitat": "Eastern Atlantic, Mediterranean",
+        },
+        {
+            "key": "lions_mane_jellyfish",
+            "name": "Lion's Mane Jellyfish",
+            "emoji": "🦁",
+            "scientific": "Cyanea capillata",
+            "danger": "Strong sting 🔴",
+            "habitat": "Arctic, North Atlantic",
+        },
+        {
+            "key": "mauve_stinger_jellyfish",
+            "name": "Mauve Stinger",
+            "emoji": "💜",
+            "scientific": "Pelagia noctiluca",
+            "danger": "Painful sting 🔴",
+            "habitat": "Mediterranean, Atlantic",
+        },
+    ]
+
+    # 3 cards per row
+    for i in range(0, len(SPECIES), 3):
+        cols = st.columns(3, gap="medium")
+        for col, species in zip(cols, SPECIES[i:i+3]):
+            with col:
+                img_path = f"samples/{species['key']}.jpg"
+                try:
+                    st.image(img_path, use_container_width=True)
+                except:
+                    st.markdown(f"""
+                    <div style="height:180px; background:rgba(255,255,255,0.03);
+                         border-radius:12px; display:flex; align-items:center;
+                         justify-content:center; font-size:3rem;">
+                         {species['emoji']}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown(f"""
+                <div class="info-card" style="margin-top:0.5rem;">
+                    <div style="font-family:'Syne',sans-serif; font-size:1rem;
+                         font-weight:700; color:#7fffd4; margin-bottom:0.3rem;">
+                        {species['emoji']} {species['name']}
+                    </div>
+                    <div style="color:#7ecfea; font-size:0.78rem; font-style:italic;
+                         margin-bottom:0.5rem;">{species['scientific']}</div>
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <span style="background:rgba(0,191,255,0.1);
+                             border:1px solid rgba(0,191,255,0.2); border-radius:99px;
+                             padding:2px 10px; font-size:0.72rem; color:#00bfff;">
+                            🌊 {species['habitat']}
+                        </span>
+                        <span style="background:rgba(255,255,255,0.05);
+                             border:1px solid rgba(255,255,255,0.1); border-radius:99px;
+                             padding:2px 10px; font-size:0.72rem; color:#a8c8e8;">
+                            {species['danger']}
+                        </span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
 st.markdown('<div class="footer">Built with TensorFlow · MobileNetV2 · Streamlit 🪼</div>', unsafe_allow_html=True)
