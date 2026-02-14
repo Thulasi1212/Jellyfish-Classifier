@@ -306,15 +306,27 @@ if page == "🔍 Classifier":
                     "Filename": uploaded_file.name,
                     "Predicted Species": top_class.replace('_', ' ').title(),
                     "Confidence (%)": f"{confidence*100:.1f}",
+                    "Status": "⚠️ Low Confidence" if confidence < 0.60 else "🔶 Moderate" if confidence < 0.80 else "✅ High Confidence",
                     "Scientific Name": info.get('scientific', ''),
                     "Habitat": info.get('habitat', ''),
                     "Size": info.get('size', ''),
                     "Sting Danger": info.get('danger', ''),
+                    "Note": "⚠️ Verify — may not be a supported species" if confidence < 0.60 else "Consider using a clearer image" if confidence < 0.80 else "",
                 })
 
         # ── CSV Download button at TOP ──
         if results:
             df = pd.DataFrame(results)
+
+            # Style low confidence rows in red, moderate in orange
+            def highlight_confidence(row):
+                conf = float(row["Confidence (%)"])
+                if conf < 60:
+                    return ['background-color: #ff4444; color: white'] * len(row)
+                elif conf < 80:
+                    return ['background-color: #ff8c00; color: white'] * len(row)
+                return [''] * len(row)
+
             col_dl, _, _ = st.columns([1, 1, 1])
             with col_dl:
                 st.download_button(
