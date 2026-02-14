@@ -314,6 +314,38 @@ if page == "🔍 Classifier":
                         info = JELLYFISH_INFO.get(top_class, {})
 
                     st.markdown('<div class="info-label">🔍 Prediction</div>', unsafe_allow_html=True)
+
+                    # ── Confidence threshold warning ──
+                    if confidence < 0.60:
+                        st.markdown(f"""
+                        <div style="background:rgba(231,76,60,0.1); border:1px solid rgba(231,76,60,0.4);
+                             border-radius:16px; padding:1.2rem 1.5rem; margin-top:1rem;">
+                            <div style="color:#e74c3c; font-family:'Syne',sans-serif;
+                                 font-size:1rem; font-weight:700; margin-bottom:0.3rem;">
+                                ⚠️ Low Confidence
+                            </div>
+                            <div style="color:#a8c8e8; font-size:0.85rem;">
+                                Model is only <b style="color:#e74c3c">{confidence*100:.1f}%</b> confident.
+                                This may not be one of the 6 supported species,
+                                or the image quality may be too low.
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    elif confidence < 0.80:
+                        st.markdown(f"""
+                        <div style="background:rgba(230,126,34,0.1); border:1px solid rgba(230,126,34,0.4);
+                             border-radius:16px; padding:1.2rem 1.5rem; margin-top:1rem;">
+                            <div style="color:#e67e22; font-family:'Syne',sans-serif;
+                                 font-size:1rem; font-weight:700; margin-bottom:0.3rem;">
+                                🔶 Moderate Confidence
+                            </div>
+                            <div style="color:#a8c8e8; font-size:0.85rem;">
+                                Model is <b style="color:#e67e22">{confidence*100:.1f}%</b> confident.
+                                Result is likely correct but verify with a clearer image.
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
                     st.markdown(f"""
                     <div class="result-card">
                         <div class="species-badge">{info.get('emoji','🪼')} Identified</div>
