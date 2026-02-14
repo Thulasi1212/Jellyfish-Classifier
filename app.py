@@ -5,6 +5,7 @@ from PIL import Image
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 
 # ── Page config ──────────────────────────────────────────────
 st.set_page_config(
@@ -288,6 +289,8 @@ if page == "🔍 Classifier":
     """, unsafe_allow_html=True)
 
     if uploaded_files:
+        results = []  # collect results for CSV
+
         for uploaded_file in uploaded_files:
             image = Image.open(uploaded_file)
 
@@ -362,6 +365,17 @@ if page == "🔍 Classifier":
                         prob = float(preds[i])
                         st.progress(prob, text=f"{name}  {prob*100:.1f}%")
 
+                    # ── Collect for CSV ──
+                    results.append({
+                        "Filename": uploaded_file.name,
+                        "Predicted Species": top_class.replace('_', ' ').title(),
+                        "Confidence (%)": f"{confidence*100:.1f}",
+                        "Scientific Name": info.get('scientific', ''),
+                        "Habitat": info.get('habitat', ''),
+                        "Size": info.get('size', ''),
+                        "Sting Danger": info.get('danger', ''),
+                    })
+
             with col3:
                 if model is not None and info:
                     st.markdown('<div class="info-label">🔬 Species Info</div>', unsafe_allow_html=True)
@@ -391,6 +405,20 @@ if page == "🔍 Classifier":
                     """, unsafe_allow_html=True)
 
             st.markdown('<hr class="ocean-divider">', unsafe_allow_html=True)
+
+        # ── CSV Download button ──
+        if results:
+            df = pd.DataFrame(results)
+            st.markdown("<br>", unsafe_allow_html=True)
+            col_dl, _, _ = st.columns([1, 1, 1])
+            with col_dl:
+                st.download_button(
+                    label="📥 Download Results as CSV",
+                    data=df.to_csv(index=False),
+                    file_name="jellyfish_results.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
 
     else:
         st.markdown("""
