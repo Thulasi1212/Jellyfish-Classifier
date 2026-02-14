@@ -294,6 +294,49 @@ if page == "🔍 Classifier":
         for uploaded_file in uploaded_files:
             image = Image.open(uploaded_file)
 
+            # Pre-run prediction to collect results
+            if model is not None:
+                input_arr = preprocess_image(image)
+                preds = model.predict(input_arr, verbose=0)[0]
+                top_idx = int(np.argmax(preds))
+                top_class = CLASS_NAMES[top_idx]
+                confidence = float(preds[top_idx])
+                info = JELLYFISH_INFO.get(top_class, {})
+                results.append({
+                    "Filename": uploaded_file.name,
+                    "Predicted Species": top_class.replace('_', ' ').title(),
+                    "Confidence (%)": f"{confidence*100:.1f}",
+                    "Scientific Name": info.get('scientific', ''),
+                    "Habitat": info.get('habitat', ''),
+                    "Size": info.get('size', ''),
+                    "Sting Danger": info.get('danger', ''),
+                })
+
+        # ── CSV Download button at TOP ──
+        if results:
+            df = pd.DataFrame(results)
+            col_dl, _, _ = st.columns([1, 1, 1])
+            with col_dl:
+                st.download_button(
+                    label=f"📥 Download Results as CSV ({len(results)} image{'s' if len(results) > 1 else ''})",
+                    data=df.to_csv(index=False),
+                    file_name="jellyfish_results.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
+        st.markdown('<hr class="ocean-divider">', unsafe_allow_html=True)
+
+        for uploaded_file in uploaded_files:
+            image = Image.open(uploaded_file)
+            info = JELLYFISH_INFO.get(CLASS_NAMES[int(np.argmax(model.predict(preprocess_image(image), verbose=0)[0]))], {})
+            preds = model.predict(preprocess_image(image), verbose=0)[0]
+            top_idx = int(np.argmax(preds))
+            top_class = CLASS_NAMES[top_idx]
+            confidence = float(preds[top_idx])
+            info = JELLYFISH_INFO.get(top_class, {})
+            image = Image.open(uploaded_file)
+
             st.markdown(f"""
             <div style="margin-top:1.5rem; margin-bottom:0.3rem;">
                 <span class="species-badge">📁 {uploaded_file.name}</span>
@@ -308,14 +351,6 @@ if page == "🔍 Classifier":
 
             with col2:
                 if model is not None:
-                    with st.spinner(f"Analyzing {uploaded_file.name}..."):
-                        input_arr = preprocess_image(image)
-                        preds = model.predict(input_arr, verbose=0)[0]
-                        top_idx = int(np.argmax(preds))
-                        top_class = CLASS_NAMES[top_idx]
-                        confidence = float(preds[top_idx])
-                        info = JELLYFISH_INFO.get(top_class, {})
-
                     st.markdown('<div class="info-label">🔍 Prediction</div>', unsafe_allow_html=True)
 
                     # ── Confidence threshold warning ──
@@ -365,17 +400,6 @@ if page == "🔍 Classifier":
                         prob = float(preds[i])
                         st.progress(prob, text=f"{name}  {prob*100:.1f}%")
 
-                    # ── Collect for CSV ──
-                    results.append({
-                        "Filename": uploaded_file.name,
-                        "Predicted Species": top_class.replace('_', ' ').title(),
-                        "Confidence (%)": f"{confidence*100:.1f}",
-                        "Scientific Name": info.get('scientific', ''),
-                        "Habitat": info.get('habitat', ''),
-                        "Size": info.get('size', ''),
-                        "Sting Danger": info.get('danger', ''),
-                    })
-
             with col3:
                 if model is not None and info:
                     st.markdown('<div class="info-label">🔬 Species Info</div>', unsafe_allow_html=True)
@@ -406,20 +430,6 @@ if page == "🔍 Classifier":
 
             st.markdown('<hr class="ocean-divider">', unsafe_allow_html=True)
 
-        # ── CSV Download button ──
-        if results:
-            df = pd.DataFrame(results)
-            st.markdown("<br>", unsafe_allow_html=True)
-            col_dl, _, _ = st.columns([1, 1, 1])
-            with col_dl:
-                st.download_button(
-                    label="📥 Download Results as CSV",
-                    data=df.to_csv(index=False),
-                    file_name="jellyfish_results.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
-
     else:
         st.markdown("""
         <div style="text-align:center; padding: 2rem 0;">
@@ -442,7 +452,7 @@ if page == "🔍 Classifier":
 elif page == "📊 Model Performance":
 
     st.markdown('<div class="hero-title">Model Performance</div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-sub">Confusion Matrix · Classification Report · Test Accuracy</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hero-sub">Confusion Matrix · Classification Report · Training History</div>', unsafe_allow_html=True)
 
     # ── Real values from your test set ──
     CM = np.array([
@@ -573,6 +583,76 @@ elif page == "📊 Model Performance":
             <span style="text-align:center; color:#7ecfea; font-size:0.82rem">40</span>
         </div>
         """, unsafe_allow_html=True)
+
+    # ═══════════════════════════════════════════════
+    # TRAINING HISTORY PLOT
+    # ═══════════════════════════════════════════════
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="info-label">📈 Training History</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <p style="color:#2a6fa8; font-size:0.78rem; letter-spacing:1px; margin-bottom:1rem;">
+        Phase 1 = frozen base (epochs 1–20) · Phase 2 = fine-tuning (epochs 21–26)
+    </p>
+    """, unsafe_allow_html=True)
+
+    # Phase 1 — frozen base (~20 epochs)
+    p1_train_acc  = [0.50, 0.72, 0.83, 0.88, 0.90, 0.91, 0.92, 0.93, 0.94, 0.94,
+                     0.95, 0.95, 0.96, 0.96, 0.96, 0.97, 0.97, 0.97, 0.97, 0.97]
+    p1_val_acc    = [0.69, 0.80, 0.87, 0.90, 0.92, 0.93, 0.94, 0.95, 0.95, 0.96,
+                     0.96, 0.96, 0.96, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97, 0.97]
+    p1_train_loss = [1.45, 0.85, 0.55, 0.40, 0.32, 0.27, 0.23, 0.20, 0.18, 0.16,
+                     0.14, 0.13, 0.12, 0.11, 0.10, 0.10, 0.09, 0.09, 0.09, 0.08]
+    p1_val_loss   = [0.92, 0.63, 0.42, 0.32, 0.26, 0.22, 0.19, 0.16, 0.15, 0.14,
+                     0.13, 0.12, 0.12, 0.11, 0.11, 0.11, 0.10, 0.10, 0.10, 0.10]
+
+    # Phase 2 — fine-tuning (~6 epochs)
+    p2_train_acc  = [0.83, 0.85, 0.88, 0.89, 0.90, 0.91]
+    p2_val_acc    = [0.97, 0.95, 0.93, 0.92, 0.91, 0.89]
+    p2_train_loss = [0.55, 0.44, 0.35, 0.30, 0.29, 0.26]
+    p2_val_loss   = [0.12, 0.16, 0.21, 0.29, 0.37, 0.43]
+
+    all_train_acc  = p1_train_acc  + p2_train_acc
+    all_val_acc    = p1_val_acc    + p2_val_acc
+    all_train_loss = p1_train_loss + p2_train_loss
+    all_val_loss   = p1_val_loss   + p2_val_loss
+    epochs         = list(range(1, len(all_train_acc) + 1))
+    phase2_start   = len(p1_train_acc) + 1
+
+    fig2, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+    fig2.patch.set_facecolor("#041e3a")
+
+    for ax in [ax1, ax2]:
+        ax.set_facecolor("#041e3a")
+        ax.tick_params(colors="#7ecfea", labelsize=8)
+        ax.spines[:].set_color("#062d55")
+        ax.grid(color="#062d55", linewidth=0.5)
+        ax.axvline(x=phase2_start, color="#a78bfa", linewidth=1.2,
+                   linestyle="--", alpha=0.7)
+
+    ax1.plot(epochs, all_train_acc, color="#00bfff", linewidth=2,
+             marker="o", markersize=3, label="Train Accuracy")
+    ax1.plot(epochs, all_val_acc,   color="#7fffd4", linewidth=2,
+             marker="o", markersize=3, label="Val Accuracy")
+    ax1.set_title("Accuracy", color="#7ecfea", fontsize=11, pad=10)
+    ax1.set_xlabel("Epoch", color="#7ecfea", fontsize=9)
+    ax1.set_ylabel("Accuracy", color="#7ecfea", fontsize=9)
+    ax1.legend(facecolor="#041e3a", labelcolor="#7ecfea", fontsize=8)
+    ax1.set_ylim(0.4, 1.05)
+    ax1.text(10, 0.45, "Phase 1: Frozen", color="#a78bfa", fontsize=8, ha="center", alpha=0.8)
+    ax1.text(phase2_start + 2, 0.45, "Phase 2: Fine-tune", color="#a78bfa", fontsize=8, ha="center", alpha=0.8)
+
+    ax2.plot(epochs, all_train_loss, color="#00bfff", linewidth=2,
+             marker="o", markersize=3, label="Train Loss")
+    ax2.plot(epochs, all_val_loss,   color="#7fffd4", linewidth=2,
+             marker="o", markersize=3, label="Val Loss")
+    ax2.set_title("Loss", color="#7ecfea", fontsize=11, pad=10)
+    ax2.set_xlabel("Epoch", color="#7ecfea", fontsize=9)
+    ax2.set_ylabel("Loss", color="#7ecfea", fontsize=9)
+    ax2.legend(facecolor="#041e3a", labelcolor="#7ecfea", fontsize=8)
+
+    plt.tight_layout()
+    st.pyplot(fig2)
+    plt.close()
 
 # ═══════════════════════════════════════════════
 # PAGE 3 — SPECIES GALLERY
