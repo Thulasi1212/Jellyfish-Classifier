@@ -146,6 +146,12 @@ h1, h2, h3 {
     margin-bottom: 0.6rem;
 }
 
+            
+/* Hide Streamlit toolbar */
+header[data-testid="stHeader"] {
+    display: none !important;
+}
+
 /* Footer */
 .footer {
     text-align: center;
